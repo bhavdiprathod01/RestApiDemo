@@ -1,34 +1,34 @@
-package com.app.restapidemo
-
 import android.os.Bundle
-import androidx.activity.enableEdgeToEdge
 import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
-import androidx.lifecycle.Observer
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.app.restapidemo.Adapter.PostAdapter
+import com.app.restapidemo.databinding.ActivityMainBinding
+
 
 class MainActivity : AppCompatActivity() {
+
     private val postViewModel: PostViewModel by viewModels()
     private lateinit var postAdapter: PostAdapter
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        setContentView(R.layout.activity_main)
+        val binding = ActivityMainBinding.inflate(layoutInflater)
+        setContentView(binding.root)
 
-        val recyclerView: RecyclerView = findViewById(R.id.recyclerView)
-        recyclerView.layoutManager = LinearLayoutManager(this)
+        postAdapter = PostAdapter() // Assuming you have an adapter to display the posts
+        binding.recyclerView.apply {
+            layoutManager = LinearLayoutManager(this@MainActivity)
+            adapter = postAdapter
+        }
 
-        postAdapter = PostAdapter()
-        recyclerView.adapter = postAdapter
-
-        postViewModel.posts.observe(this, Observer { posts ->
-            // Update UI when data changes
+        // Observe the data from Room (postViewModel.getPosts() is LiveData)
+        postViewModel.getPosts().observe(this, { posts ->
             postAdapter.submitList(posts)
         })
 
-        // Fetch posts
+        // Fetch data from API and store it in Room
         postViewModel.fetchPosts()
     }
 }

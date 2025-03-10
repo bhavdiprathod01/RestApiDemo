@@ -1,29 +1,34 @@
-package com.app.restapidemo
+import android.app.Application
+import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.LiveData
-import androidx.lifecycle.MutableLiveData
-import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
+import com.app.restapidemo.AppDatabase
 import com.app.restapidemo.Model.Post
 import com.app.restapidemo.rertofit.RetrofitInstance
-import retrofit2.Call
-import retrofit2.Callback
-import retrofit2.Response
+import kotlinx.coroutines.launch
 
-class PostViewModel : ViewModel() {
+class PostViewModel(application: Application) : AndroidViewModel(application) {
 
-    private val _posts = MutableLiveData<List<Post>>()
-    val posts: LiveData<List<Post>> get() = _posts
+    private val postDao = AppDatabase.getDatabase(application).postDao()
+    private val postsLiveData: LiveData<List<Post>> = postDao.getAllPosts() // Observe the local database
 
+    // Method to fetch posts from API and insert into Room
     fun fetchPosts() {
-        RetrofitInstance.apiService.getPosts().enqueue(object : Callback<List<Post>> {
-            override fun onResponse(call: Call<List<Post>>, response: Response<List<Post>>) {
-                if (response.isSuccessful) {
-                    _posts.value = response.body()
-                }
-            }
+        viewModelScope.launch {
+            try {
+                // Fetch posts from API
+                val postsFromApi = RetrofitInstance.apiService.getPosts()
 
-            override fun onFailure(call: Call<List<Post>>, t: Throwable) {
-                // Handle failure
+                // Insert posts into Room Database
+                postDao.insertAll(postsFromApi)
+            } catch (e: Exception) {
+                // Handle errors
             }
-        })
+        }
+    }
+
+    // Method to access live data for UI
+    fun getPosts(): LiveData<List<Post>> {
+        return postsLiveData
     }
 }
